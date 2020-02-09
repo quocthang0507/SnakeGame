@@ -1,22 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace SnakeGame_Console
 {
 	public class Pixel
 	{
-		public Pixel(int x, int y, ConsoleColor screenColor, char symbol)
+		public int Left { get; set; }
+		public int Top { get; set; }
+		public ConsoleColor ScreenColor { get; set; }
+		public char Symbol { get; set; }
+
+		public Pixel(int left, int top, ConsoleColor screenColor, char symbol)
 		{
-			X = x;
-			Y = y;
+			Left = left;
+			Top = top;
 			ScreenColor = screenColor;
 			Symbol = symbol;
 		}
-
-		public int X { get; set; }
-		public int Y { get; set; }
-		public ConsoleColor ScreenColor { get; set; }
-		public char Symbol { get; set; }
 	}
 }

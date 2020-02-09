@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using static System.Console;
 
 namespace SnakeGame_Console
@@ -20,13 +21,17 @@ namespace SnakeGame_Console
 		public string Name { get; set; }
 		public int Speed { get; set; }
 
+		private const ConsoleColor textColor = ConsoleColor.Yellow;
+		private const ConsoleColor borderColor = ConsoleColor.DarkYellow;
+		private const ConsoleColor berryColor = ConsoleColor.Cyan;
+		private const ConsoleColor headColor = ConsoleColor.Green;
+		private const ConsoleColor bodyColor = ConsoleColor.Red;
 		private const char snakePixel = '*';
 		private const char berryPixel = '0';
 		private const char verticalBorder = '|';
 		private const char horizonBorder = '_';
 		private const char blank = ' ';
 
-		private bool gameover;
 		private Pixel head;
 		private Pixel berry;
 		private List<Pixel> body;
@@ -41,7 +46,7 @@ namespace SnakeGame_Console
 			this.Name = name;
 		}
 
-		public Game(int width, int height, string name, int speed)
+		public Game(int width, int height, string name, int speed = 400)
 		{
 			Width = width;
 			Height = height;
@@ -49,8 +54,18 @@ namespace SnakeGame_Console
 			Speed = speed;
 		}
 
+		private void DrawPixel(Pixel pixel)
+		{
+			SetCursorPosition(pixel.Left, pixel.Top);
+			ForegroundColor = pixel.ScreenColor;
+			Write(pixel.Symbol);
+			SetCursorPosition(0, 0);
+			ForegroundColor = ConsoleColor.White;
+		}
+
 		private void DrawBorder()
 		{
+			ForegroundColor = borderColor;
 			WriteLine(new string(horizonBorder, Width));
 			for (int i = 1; i < Height; i++)
 			{
@@ -65,16 +80,10 @@ namespace SnakeGame_Console
 
 		private void ClearPixel(Pixel pixel)
 		{
-			SetCursorPosition(pixel.X, pixel.Y);
-			Write(blank);
-		}
-
-		private void DrawPixel(Pixel pixel)
-		{
-			SetCursorPosition(pixel.X, pixel.Y);
-			ForegroundColor = pixel.ScreenColor;
-			Write(pixel.Symbol);
-			SetCursorPosition(0, 0);
+			if (pixel.Top == Height - 1)
+				DrawPixel(new Pixel(pixel.Left, pixel.Top, ConsoleColor.DarkYellow, horizonBorder));
+			else
+				DrawPixel(new Pixel(pixel.Left, pixel.Top, ConsoleColor.DarkYellow, blank));
 		}
 
 		private void DrawBody(List<Pixel> body)
@@ -106,70 +115,84 @@ namespace SnakeGame_Console
 		{
 			int x = Width + 5, y = 5;
 			SetCursorPosition(x, y);
-			Write("Name:\t" + Name);
+			WriteWithColor("Name:\t" + Name, textColor);
 			SetCursorPosition(x, y + 1);
-			Write("Score:\t" + score);
+			WriteWithColor("Score:\t" + score, textColor);
 			SetCursorPosition(0, 0);
 		}
 
-		public void Play()
+		private void Init()
 		{
 			// Initialize default values
 			random = new Random();
 			score = 0;
-			head = new Pixel(Width / 2, Height / 2, ConsoleColor.Green, snakePixel);
-			berry = new Pixel(random.Next(1, Width - 2), random.Next(1, Height - 2), ConsoleColor.Cyan, berryPixel);
+			head = new Pixel(Width / 2, Height / 2, headColor, snakePixel);
+			berry = new Pixel(random.Next(1, Width - 2), random.Next(1, Height - 2), berryColor, berryPixel);
 			body = new List<Pixel>();
 			currentMovement = Direction.Right;
-			gameover = false;
+		}
+
+		private bool IsDied()
+		{
+			return (head.Left == Width || head.Left == 0 || head.Top == Height || head.Top == 0) || body.Where(p => p.Left == head.Left && p.Top == head.Top).ToList().Count > 0;
+		}
+
+		public static void WriteWithColor(string text, ConsoleColor color)
+		{
+			Console.ForegroundColor = color;
+			Console.Write(text);
+			Console.ForegroundColor = ConsoleColor.White;
+		}
+
+		public void Play()
+		{
+		start:
+			Clear();
+
+			Init();
 
 			DrawBorder();
 			PrintScore();
 
 			while (true)
 			{
-				// The snake touched wall
-				gameover |= (head.X == Width || head.X == 0 || head.Y == Height || head.Y == 0);
-				// The snake was touched by itself
-				gameover |= body.Contains(head);
-
 				// End game
-				if (gameover)
+				if (IsDied())
 					break;
 
 				DrawBody(body);
 				DrawPixel(head);
 				DrawPixel(berry);
 
-				// The snake ate berry
-				if (berry.X == head.X && berry.Y == head.Y)
+				// If the snake eats berry
+				if (berry.Left == head.Left && berry.Top == head.Top)
 				{
 					score += 5;
-					ClearPixel(berry);
-					body.Add(new Pixel(berry.X, berry.Y, ConsoleColor.Red, snakePixel));
-					berry = new Pixel(random.Next(1, Width - 2), random.Next(1, Height - 2), ConsoleColor.Cyan, berryPixel);
 					PrintScore();
+					body.Add(new Pixel(berry.Left, berry.Top, bodyColor, snakePixel));
+					ClearPixel(berry);
+					berry = new Pixel(random.Next(1, Width - 2), random.Next(1, Height - 2), berryColor, berryPixel);
 				}
 
 				var watch = Stopwatch.StartNew();
-				while (watch.ElapsedMilliseconds <= 500)
+				while (watch.ElapsedMilliseconds < Speed)
 					currentMovement = ReadMovement(currentMovement);
 
-				body.Add(new Pixel(head.X, head.Y, ConsoleColor.Red, snakePixel));
+				body.Add(new Pixel(head.Left, head.Top, bodyColor, snakePixel));
 
 				switch (currentMovement)
 				{
 					case Direction.Up:
-						head.Y--;
+						head.Top--;
 						break;
 					case Direction.Down:
-						head.Y++;
+						head.Top++;
 						break;
 					case Direction.Right:
-						head.X++;
+						head.Left++;
 						break;
 					case Direction.Left:
-						head.X--;
+						head.Left--;
 						break;
 					default:
 						break;
@@ -180,9 +203,12 @@ namespace SnakeGame_Console
 			}
 
 			SetCursorPosition(Width / 5, Height / 2);
-			WriteLine($"Game over, score: {score}");
+			WriteWithColor($"Game over, score: {score}",textColor);
 			SetCursorPosition(0, Height + 1);
-			ReadKey();
+			WriteWithColor("Play again? Press R to restart, press other key to exit ", textColor);
+			char input = ReadKey(true).KeyChar;
+			if (input == 'R' || input == 'r')
+				goto start;
 		}
 	}
 }
