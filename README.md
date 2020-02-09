@@ -1,2 +1,2 @@
 # SnakeGame
- Snake game in Console Window and WinForm
+ Classic Snake game in Console Window and WinForm
