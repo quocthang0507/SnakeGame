@@ -203,7 +203,7 @@ namespace SnakeGame_Console
 			}
 
 			SetCursorPosition(Width / 5, Height / 2);
-			WriteWithColor($"Game over, score: {score}",textColor);
+			WriteWithColor($"Game over, score: {score}", textColor);
 			SetCursorPosition(0, Height + 1);
 			WriteWithColor("Play again? Press R to restart, press other key to exit ", textColor);
 			char input = ReadKey(true).KeyChar;
